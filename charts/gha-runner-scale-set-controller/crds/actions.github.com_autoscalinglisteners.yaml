@@ -101,6 +101,11 @@ spec:
                   description: Required
                   minimum: 0
                   type: integer
+                minRunnersStrategy:
+                  enum:
+                    - lazy
+                    - eager
+                  type: string
                 proxy:
                   properties:
                     http:

@@ -88,6 +88,8 @@ spec:
   minRunners: {{ .Values.minRunners | int }}
   {{- end }}
 
+  minRunnersStrategy: {{ .Values.minRunnersStrategy | default "lazy" }}
+
   {{- with .Values.listenerTemplate}}
   listenerTemplate:
     {{- toYaml . | nindent 4}}

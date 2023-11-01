@@ -504,44 +504,130 @@ func TestScaleForAssignedJobCount_ScaleWithinMinMax(t *testing.T) {
 	logger = logger.WithName(t.Name())
 	require.NoError(t, log_err, "Error creating logger")
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	service, err := NewService(
-		ctx,
-		mockRsClient,
-		mockKubeManager,
-		&ScaleSettings{
-			Namespace:    "namespace",
-			ResourceName: "resource",
-			MinRunners:   1,
-			MaxRunners:   5,
-		},
-		func(s *Service) {
-			s.logger = logger
-		},
-	)
-	require.NoError(t, err)
+	t.Run("NoStrategy", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		service, err := NewService(
+			ctx,
+			mockRsClient,
+			mockKubeManager,
+			&ScaleSettings{
+				Namespace:    "namespace",
+				ResourceName: "resource",
+				MinRunners:   1,
+				MaxRunners:   5,
+			},
+			func(s *Service) {
+				s.logger = logger
+			},
+		)
+		require.NoError(t, err)
 
-	mockKubeManager.On("ScaleEphemeralRunnerSet", ctx, service.settings.Namespace, service.settings.ResourceName, 1).Return(nil).Once()
-	mockKubeManager.On("ScaleEphemeralRunnerSet", ctx, service.settings.Namespace, service.settings.ResourceName, 3).Return(nil).Once()
-	mockKubeManager.On("ScaleEphemeralRunnerSet", ctx, service.settings.Namespace, service.settings.ResourceName, 5).Return(nil).Once()
-	mockKubeManager.On("ScaleEphemeralRunnerSet", ctx, service.settings.Namespace, service.settings.ResourceName, 1).Return(nil).Once()
-	mockKubeManager.On("ScaleEphemeralRunnerSet", ctx, service.settings.Namespace, service.settings.ResourceName, 5).Return(nil).Once()
+		mockKubeManager.On("ScaleEphemeralRunnerSet", ctx, service.settings.Namespace, service.settings.ResourceName, 1).Return(nil).Once()
+		mockKubeManager.On("ScaleEphemeralRunnerSet", ctx, service.settings.Namespace, service.settings.ResourceName, 3).Return(nil).Once()
+		mockKubeManager.On("ScaleEphemeralRunnerSet", ctx, service.settings.Namespace, service.settings.ResourceName, 5).Return(nil).Once()
+		mockKubeManager.On("ScaleEphemeralRunnerSet", ctx, service.settings.Namespace, service.settings.ResourceName, 1).Return(nil).Once()
+		mockKubeManager.On("ScaleEphemeralRunnerSet", ctx, service.settings.Namespace, service.settings.ResourceName, 5).Return(nil).Once()
 
-	err = service.scaleForAssignedJobCount(0)
-	require.NoError(t, err, "Unexpected error")
-	err = service.scaleForAssignedJobCount(3)
-	require.NoError(t, err, "Unexpected error")
-	err = service.scaleForAssignedJobCount(5)
-	require.NoError(t, err, "Unexpected error")
-	err = service.scaleForAssignedJobCount(1)
-	require.NoError(t, err, "Unexpected error")
-	err = service.scaleForAssignedJobCount(10)
+		err = service.scaleForAssignedJobCount(0)
+		require.NoError(t, err, "Unexpected error")
+		err = service.scaleForAssignedJobCount(3)
+		require.NoError(t, err, "Unexpected error")
+		err = service.scaleForAssignedJobCount(5)
+		require.NoError(t, err, "Unexpected error")
+		err = service.scaleForAssignedJobCount(1)
+		require.NoError(t, err, "Unexpected error")
+		err = service.scaleForAssignedJobCount(10)
 
-	assert.NoError(t, err, "Unexpected error")
-	assert.Equal(t, 5, service.currentRunnerCount, "Unexpected runner count")
-	assert.True(t, mockRsClient.AssertExpectations(t), "All expectations should be met")
-	assert.True(t, mockKubeManager.AssertExpectations(t), "All expectations should be met")
+		assert.NoError(t, err, "Unexpected error")
+		assert.Equal(t, 5, service.currentRunnerCount, "Unexpected runner count")
+		assert.True(t, mockRsClient.AssertExpectations(t), "All expectations should be met")
+		assert.True(t, mockKubeManager.AssertExpectations(t), "All expectations should be met")
+	})
+
+	t.Run("Lazy", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		service, err := NewService(
+			ctx,
+			mockRsClient,
+			mockKubeManager,
+			&ScaleSettings{
+				Namespace:          "namespace",
+				ResourceName:       "resource",
+				MinRunners:         1,
+				MinRunnersStrategy: "lazy",
+				MaxRunners:         5,
+			},
+			func(s *Service) {
+				s.logger = logger
+			},
+		)
+		require.NoError(t, err)
+
+		mockKubeManager.On("ScaleEphemeralRunnerSet", ctx, service.settings.Namespace, service.settings.ResourceName, 1).Return(nil).Once()
+		mockKubeManager.On("ScaleEphemeralRunnerSet", ctx, service.settings.Namespace, service.settings.ResourceName, 3).Return(nil).Once()
+		mockKubeManager.On("ScaleEphemeralRunnerSet", ctx, service.settings.Namespace, service.settings.ResourceName, 5).Return(nil).Once()
+		mockKubeManager.On("ScaleEphemeralRunnerSet", ctx, service.settings.Namespace, service.settings.ResourceName, 1).Return(nil).Once()
+		mockKubeManager.On("ScaleEphemeralRunnerSet", ctx, service.settings.Namespace, service.settings.ResourceName, 5).Return(nil).Once()
+
+		err = service.scaleForAssignedJobCount(0)
+		require.NoError(t, err, "Unexpected error")
+		err = service.scaleForAssignedJobCount(3)
+		require.NoError(t, err, "Unexpected error")
+		err = service.scaleForAssignedJobCount(5)
+		require.NoError(t, err, "Unexpected error")
+		err = service.scaleForAssignedJobCount(1)
+		require.NoError(t, err, "Unexpected error")
+		err = service.scaleForAssignedJobCount(10)
+
+		assert.NoError(t, err, "Unexpected error")
+		assert.Equal(t, 5, service.currentRunnerCount, "Unexpected runner count")
+		assert.True(t, mockRsClient.AssertExpectations(t), "All expectations should be met")
+		assert.True(t, mockKubeManager.AssertExpectations(t), "All expectations should be met")
+	})
+
+	t.Run("Eager", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		service, err := NewService(
+			ctx,
+			mockRsClient,
+			mockKubeManager,
+			&ScaleSettings{
+				Namespace:          "namespace",
+				ResourceName:       "resource",
+				MinRunners:         1,
+				MinRunnersStrategy: "eager",
+				MaxRunners:         5,
+			},
+			func(s *Service) {
+				s.logger = logger
+			},
+		)
+		require.NoError(t, err)
+
+		mockKubeManager.On("ScaleEphemeralRunnerSet", ctx, service.settings.Namespace, service.settings.ResourceName, 1).Return(nil).Once()
+		mockKubeManager.On("ScaleEphemeralRunnerSet", ctx, service.settings.Namespace, service.settings.ResourceName, 4).Return(nil).Once()
+		mockKubeManager.On("ScaleEphemeralRunnerSet", ctx, service.settings.Namespace, service.settings.ResourceName, 5).Return(nil).Once()
+		mockKubeManager.On("ScaleEphemeralRunnerSet", ctx, service.settings.Namespace, service.settings.ResourceName, 2).Return(nil).Once()
+		mockKubeManager.On("ScaleEphemeralRunnerSet", ctx, service.settings.Namespace, service.settings.ResourceName, 5).Return(nil).Once()
+
+		err = service.scaleForAssignedJobCount(0)
+		require.NoError(t, err, "Unexpected error")
+		err = service.scaleForAssignedJobCount(3)
+		require.NoError(t, err, "Unexpected error")
+		err = service.scaleForAssignedJobCount(5)
+		require.NoError(t, err, "Unexpected error")
+		err = service.scaleForAssignedJobCount(1)
+		require.NoError(t, err, "Unexpected error")
+		err = service.scaleForAssignedJobCount(10)
+
+		assert.NoError(t, err, "Unexpected error")
+		assert.Equal(t, 5, service.currentRunnerCount, "Unexpected runner count")
+		assert.True(t, mockRsClient.AssertExpectations(t), "All expectations should be met")
+		assert.True(t, mockKubeManager.AssertExpectations(t), "All expectations should be met")
+	})
 }
 
 func TestScaleForAssignedJobCount_ScaleFailed(t *testing.T) {

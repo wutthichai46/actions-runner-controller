@@ -14,10 +14,11 @@ import (
 )
 
 type ScaleSettings struct {
-	Namespace    string
-	ResourceName string
-	MinRunners   int
-	MaxRunners   int
+	Namespace          string
+	ResourceName       string
+	MinRunners         int
+	MinRunnersStrategy string
+	MaxRunners         int
 }
 
 type Service struct {
@@ -205,7 +206,18 @@ func (s *Service) processMessage(message *actions.RunnerScaleSetMessage) error {
 }
 
 func (s *Service) scaleForAssignedJobCount(count int) error {
-	targetRunnerCount := int(math.Max(math.Min(float64(s.settings.MaxRunners), float64(count)), float64(s.settings.MinRunners)))
+	var targetRunnerCount int
+	switch s.settings.MinRunnersStrategy {
+	case "eager":
+		target := s.settings.MinRunners + count
+		if s.settings.MaxRunners > 0 && s.settings.MaxRunners < target {
+			target = s.settings.MaxRunners
+		}
+		targetRunnerCount = target
+	default:
+		targetRunnerCount = int(math.Max(math.Min(float64(s.settings.MaxRunners), float64(count)), float64(s.settings.MinRunners)))
+	}
+
 	s.metricsExporter.publishDesiredRunners(targetRunnerCount)
 	if targetRunnerCount != s.currentRunnerCount {
 		s.logger.Info("try scale runner request up/down base on assigned job count",

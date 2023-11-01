@@ -49,6 +49,10 @@ type AutoscalingListenerSpec struct {
 	// +kubebuilder:validation:Minimum:=0
 	MinRunners int `json:"minRunners,omitempty"`
 
+	// +optional
+	// +kubebuilder:validation:Enum:=lazy;eager
+	MinRunnersStrategy *string `json:"minRunnersStrategy,omitempty"`
+
 	// Required
 	Image string `json:"image,omitempty"`
 

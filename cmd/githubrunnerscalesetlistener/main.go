@@ -195,10 +195,11 @@ func run(ctx context.Context, rc config.Config, logger logr.Logger, opts runOpti
 	}
 
 	scaleSettings := &ScaleSettings{
-		Namespace:    rc.EphemeralRunnerSetNamespace,
-		ResourceName: rc.EphemeralRunnerSetName,
-		MaxRunners:   rc.MaxRunners,
-		MinRunners:   rc.MinRunners,
+		Namespace:          rc.EphemeralRunnerSetNamespace,
+		ResourceName:       rc.EphemeralRunnerSetName,
+		MaxRunners:         rc.MaxRunners,
+		MinRunners:         rc.MinRunners,
+		MinRunnersStrategy: rc.MinRunnersStrategy,
 	}
 
 	service, err := NewService(ctx, autoScalerClient, kubeManager, scaleSettings, opts.serviceOptions...)

@@ -115,6 +115,7 @@ func (b *resourceBuilder) newAutoScalingListener(autoscalingRunnerSet *v1alpha1.
 			AutoscalingRunnerSetName:      autoscalingRunnerSet.Name,
 			EphemeralRunnerSetName:        ephemeralRunnerSet.Name,
 			MinRunners:                    effectiveMinRunners,
+			MinRunnersStrategy:            autoscalingRunnerSet.Spec.MinRunnersStrategy,
 			MaxRunners:                    effectiveMaxRunners,
 			Image:                         image,
 			ImagePullSecrets:              imagePullSecrets,
@@ -176,6 +177,10 @@ func (b *resourceBuilder) newScaleSetListenerConfig(autoscalingListener *v1alpha
 		}
 	}
 
+	minRunnersStrategy := "lazy"
+	if autoscalingListener.Spec.MinRunnersStrategy != nil && validMinRunnersStrategy(*autoscalingListener.Spec.MinRunnersStrategy) {
+		minRunnersStrategy = *autoscalingListener.Spec.MinRunnersStrategy
+	}
 	config := listenerconfig.Config{
 		ConfigureUrl:                autoscalingListener.Spec.GitHubConfigUrl,
 		AppID:                       appID,
@@ -186,6 +191,7 @@ func (b *resourceBuilder) newScaleSetListenerConfig(autoscalingListener *v1alpha
 		EphemeralRunnerSetName:      autoscalingListener.Spec.EphemeralRunnerSetName,
 		MaxRunners:                  autoscalingListener.Spec.MaxRunners,
 		MinRunners:                  autoscalingListener.Spec.MinRunners,
+		MinRunnersStrategy:          minRunnersStrategy,
 		RunnerScaleSetId:            autoscalingListener.Spec.RunnerScaleSetId,
 		RunnerScaleSetName:          autoscalingListener.Spec.AutoscalingRunnerSetName,
 		ServerRootCA:                cert,
@@ -745,4 +751,8 @@ func trimLabelValue(val string) string {
 		return val[:63-len(trimLabelVauleSuffix)] + trimLabelVauleSuffix
 	}
 	return val
+}
+
+func validMinRunnersStrategy(strategy string) bool {
+	return strategy == "lazy" || strategy == "eager"
 }

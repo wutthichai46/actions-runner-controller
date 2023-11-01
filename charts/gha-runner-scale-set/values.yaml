@@ -42,6 +42,16 @@ githubConfigSecret:
 ## minRunners is the min number of runners the autoscaling runner set will scale down to.
 # minRunners: 0
 
+## minRunnersStrategy is strategy that influences how the field minRunners is used.
+## It can be either "lazy" or "eager". If value set is neither, the default is "lazy"
+##
+## "lazy" strategy is useful in cold scenarios where after a spike, the number of runners
+## is eventually the number of "minRunners"
+##
+## "eager" strategy treats the minRunners as minIdleRunners. This strategy ensures that
+## there are at least number of "minRunners" idle, but not more than "maxRunners" if configured
+# minRunnersStrategy: lazy
+
 # runnerGroup: "default"
 
 ## name of the runner scale set to create.  Defaults to the helm release name
