@@ -110,14 +110,10 @@ func (r *EphemeralRunnerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			return ctrl.Result{Requeue: true}, nil
 		}
 
-		done, err = r.cleanupContainerHooksResources(ctx, ephemeralRunner, log)
+		err = r.cleanupContainerHooksResources(ctx, ephemeralRunner, log)
 		if err != nil {
 			log.Error(err, "Failed to clean up container hooks resources")
 			return ctrl.Result{}, err
-		}
-		if !done {
-			log.Info("Waiting for container hooks resources to be deleted")
-			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
 
 		log.Info("Removing finalizer")
@@ -333,41 +329,40 @@ func (r *EphemeralRunnerReconciler) cleanupResources(ctx context.Context, epheme
 	return true, nil
 }
 
-func (r *EphemeralRunnerReconciler) cleanupContainerHooksResources(ctx context.Context, ephemeralRunner *v1alpha1.EphemeralRunner, log logr.Logger) (done bool, err error) {
+// cleanupContainerHooksResources cleans up the resources created by the container hooks
+//
+// This is a best-effort cleanup. If the cleanup fails, the runner will still be deleted.
+func (r *EphemeralRunnerReconciler) cleanupContainerHooksResources(ctx context.Context, ephemeralRunner *v1alpha1.EphemeralRunner, log logr.Logger) error {
 	log.Info("Cleaning up runner linked pods")
-	done, err = r.cleanupRunnerLinkedPods(ctx, ephemeralRunner, log)
+	err := r.cleanupRunnerLinkedPods(ctx, ephemeralRunner, log)
 	if err != nil {
-		return false, fmt.Errorf("failed to clean up runner linked pods: %v", err)
-	}
-
-	if !done {
-		return false, nil
+		return fmt.Errorf("failed to clean up runner linked pods: %v", err)
 	}
 
 	log.Info("Cleaning up runner linked secrets")
-	done, err = r.cleanupRunnerLinkedSecrets(ctx, ephemeralRunner, log)
+	err = r.cleanupRunnerLinkedSecrets(ctx, ephemeralRunner, log)
 	if err != nil {
-		return false, err
+		return fmt.Errorf("failed to clean up runner linked secrets: %v", err)
 	}
 
-	return done, nil
+	return nil
 }
 
-func (r *EphemeralRunnerReconciler) cleanupRunnerLinkedPods(ctx context.Context, ephemeralRunner *v1alpha1.EphemeralRunner, log logr.Logger) (done bool, err error) {
+func (r *EphemeralRunnerReconciler) cleanupRunnerLinkedPods(ctx context.Context, ephemeralRunner *v1alpha1.EphemeralRunner, log logr.Logger) error {
 	runnerLinedLabels := client.MatchingLabels(
 		map[string]string{
 			"runner-pod": ephemeralRunner.Name,
 		},
 	)
 	var runnerLinkedPodList corev1.PodList
-	err = r.List(ctx, &runnerLinkedPodList, client.InNamespace(ephemeralRunner.Namespace), runnerLinedLabels)
+	err := r.List(ctx, &runnerLinkedPodList, client.InNamespace(ephemeralRunner.Namespace), runnerLinedLabels)
 	if err != nil {
-		return false, fmt.Errorf("failed to list runner-linked pods: %v", err)
+		return fmt.Errorf("failed to list runner-linked pods: %v", err)
 	}
 
 	if len(runnerLinkedPodList.Items) == 0 {
 		log.Info("Runner-linked pods are deleted")
-		return true, nil
+		return nil
 	}
 
 	log.Info("Deleting container hooks runner-linked pods", "count", len(runnerLinkedPodList.Items))
@@ -385,24 +380,24 @@ func (r *EphemeralRunnerReconciler) cleanupRunnerLinkedPods(ctx context.Context,
 		}
 	}
 
-	return false, multierr.Combine(errs...)
+	return multierr.Combine(errs...)
 }
 
-func (r *EphemeralRunnerReconciler) cleanupRunnerLinkedSecrets(ctx context.Context, ephemeralRunner *v1alpha1.EphemeralRunner, log logr.Logger) (done bool, err error) {
+func (r *EphemeralRunnerReconciler) cleanupRunnerLinkedSecrets(ctx context.Context, ephemeralRunner *v1alpha1.EphemeralRunner, log logr.Logger) error {
 	runnerLinkedLabels := client.MatchingLabels(
 		map[string]string{
 			"runner-pod": ephemeralRunner.ObjectMeta.Name,
 		},
 	)
 	var runnerLinkedSecretList corev1.SecretList
-	err = r.List(ctx, &runnerLinkedSecretList, client.InNamespace(ephemeralRunner.Namespace), runnerLinkedLabels)
+	err := r.List(ctx, &runnerLinkedSecretList, client.InNamespace(ephemeralRunner.Namespace), runnerLinkedLabels)
 	if err != nil {
-		return false, fmt.Errorf("failed to list runner-linked secrets: %w", err)
+		return fmt.Errorf("failed to list runner-linked secrets: %w", err)
 	}
 
 	if len(runnerLinkedSecretList.Items) == 0 {
 		log.Info("Runner-linked secrets are deleted")
-		return true, nil
+		return nil
 	}
 
 	log.Info("Deleting container hooks runner-linked secrets", "count", len(runnerLinkedSecretList.Items))
@@ -420,7 +415,7 @@ func (r *EphemeralRunnerReconciler) cleanupRunnerLinkedSecrets(ctx context.Conte
 		}
 	}
 
-	return false, multierr.Combine(errs...)
+	return multierr.Combine(errs...)
 }
 
 func (r *EphemeralRunnerReconciler) markAsFailed(ctx context.Context, ephemeralRunner *v1alpha1.EphemeralRunner, log logr.Logger) error {
