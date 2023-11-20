@@ -86,110 +86,17 @@ githubConfigSecret:
 #       image: example-sidecar
 
 ################################################################################
-##################################### DIND #####################################
-################################################################################
-## template is the PodSpec for each runner Pod running in dind mode.
-## Please uncomment this template if you want to install it in dind mode.
-## Feel free to customize the spec.
-## For reference: https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#PodSpec
-# template:
-#   spec:
-#     initContainers:
-#     - name: init-dind-externals
-#       image: ghcr.io/actions/actions-runner:latest
-#       command: ["cp", "-r", "-v", "/home/runner/externals/.", "/home/runner/tmpDir/"]
-#       volumeMounts:
-#         - name: dind-externals
-#           mountPath: /home/runner/tmpDir
-#     containers:
-#     - name: runner
-#       image: ghcr.io/actions/actions-runner:latest
-#       command: ["/home/runner/run.sh"]
-#       env:
-#         - name: DOCKER_HOST
-#           value: unix:///run/docker/docker.sock
-#       volumeMounts:
-#         - name: work
-#           mountPath: /home/runner/_work
-#         - name: dind-sock
-#           mountPath: /run/docker
-#           readOnly: true
-#     - name: dind
-#       image: docker:dind
-#       args:
-#         - dockerd
-#         - --host=unix:///run/docker/docker.sock
-#         - --group=$(DOCKER_GROUP_GID)
-#       env:
-#         - name: DOCKER_GROUP_GID
-#           value: "123"
-#       securityContext:
-#         privileged: true
-#       volumeMounts:
-#         - name: work
-#           mountPath: /home/runner/_work
-#         - name: dind-sock
-#           mountPath: /run/docker
-#         - name: dind-externals
-#           mountPath: /home/runner/externals
-#     volumes:
-#     - name: work
-#       emptyDir: {}
-#     - name: dind-sock
-#       emptyDir: {}
-#     - name: dind-externals
-#       emptyDir: {}
-
-
-################################################################################
-################################# KUBERNETS ####################################
-################################################################################
-## template is the PodSpec for each runner Pod running in kubernetes mode.
-## Please uncomment this template if you want to install it in kubernetes mode.
-## Make sure you specify the correct storage class
-## For reference: https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#PodSpec
-# template:
-#   spec:
-#     containers:
-#     - name: runner
-#       image: ghcr.io/actions/actions-runner:latest
-#       command: ["/home/runner/run.sh"]
-#       env:
-#         - name: ACTIONS_RUNNER_CONTAINER_HOOKS
-#           value: /home/runner/k8s/index.js
-#         - name: ACTIONS_RUNNER_POD_NAME
-#           valueFrom:
-#             fieldRef:
-#               fieldPath: metadata.name
-#         - name: ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER
-#           value: "true"
-#       volumeMounts:
-#         - name: work
-#           mountPath: /home/runner/_work
-#     volumes:
-#       - name: work
-#         ephemeral:
-#           volumeClaimTemplate:
-#             spec:
-#               accessModes: [ "ReadWriteOnce" ]
-#               storageClassName: "local-path"
-#               resources:
-#                 requests:
-#                   storage: 1Gi
-
-
-################################################################################
 ##################################### NONE #####################################
 ################################################################################
-## template is the PodSpec for each runner Pod running in none mode.
-## This mode does not have access to docker socket and can't execute k8s hook.
+## Out-of-box template is the PodSpec for each runner Pod running in none mode.
+## Feel free to customize it.
 ## For reference: https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#PodSpec
-# template:
-#   spec:
-#     containers:
-#       - name: runner
-#         image: ghcr.io/actions/actions-runner:latest
-#         command: ["/home/runner/run.sh"]
+template:
+  spec:
+    containers:
+      - name: runner
+        image: ghcr.io/actions/actions-runner:latest
+        command: ["/home/runner/run.sh"]
 
 ## Optional controller service account that needs to have required Role and RoleBinding
 ## to operate this gha-runner-scale-set installation.

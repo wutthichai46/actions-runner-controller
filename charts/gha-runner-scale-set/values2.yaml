@@ -92,7 +92,7 @@ githubConfigSecret:
 ## Please uncomment this template if you want to install it in dind mode.
 ## Feel free to customize the spec.
 ## For reference: https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#PodSpec
-# template:
+# dind-template:
 #   spec:
 #     initContainers:
 #     - name: init-dind-externals
@@ -140,7 +140,6 @@ githubConfigSecret:
 #     - name: dind-externals
 #       emptyDir: {}
 
-
 ################################################################################
 ################################# KUBERNETS ####################################
 ################################################################################
@@ -148,7 +147,7 @@ githubConfigSecret:
 ## Please uncomment this template if you want to install it in kubernetes mode.
 ## Make sure you specify the correct storage class
 ## For reference: https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#PodSpec
-# template:
+# k8s-template:
 #   spec:
 #     containers:
 #     - name: runner
@@ -184,7 +183,7 @@ githubConfigSecret:
 ## template is the PodSpec for each runner Pod running in none mode.
 ## This mode does not have access to docker socket and can't execute k8s hook.
 ## For reference: https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#PodSpec
-# template:
+# none-template:
 #   spec:
 #     containers:
 #       - name: runner
